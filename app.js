@@ -1,7 +1,21 @@
 /* dxles.eu — vanilla JS, no build step.
-   GSAP + ScrollTrigger are loaded globally in index.html.
+   GSAP + ScrollTrigger (+ optional Lenis) are loaded globally in index.html.
    three.js is dynamically imported as an ES module from CDN inside initSphere()
-   so a failed/slow CDN never breaks the rest of the site. */
+   so a failed/slow CDN never breaks the rest of the site.
+
+   SCROLL ARCHITECTURE (v4 — scrub-stage, no pin):
+   Each of hero/work/systems/about is a `.stage` (CSS position:fixed, always
+   filling the viewport) paired with an invisible `.scroll-spacer` sibling
+   that reserves real scroll distance in the normal document flow. A single
+   GSAP timeline per stage is bound with `scrub:true` to its own spacer's
+   ScrollTrigger (start:'top top', end:'bottom top') — so timeline progress
+   is a direct, continuous function of scroll position. No `pin:true`
+   anywhere, so GSAP never injects a pin-spacer or re-measures a pinned
+   element's box at runtime, which is what let two consecutive pinned
+   sections desync in the old step-locked version. Fast/inertial scrolling
+   can never "blast through" a step because there are no discrete steps —
+   just a continuous 0..1 mapping, identical in spirit to how the reference
+   site drives `.character-model`/`.landing-container` off `.landing-section`. */
 
 /* ================================ CONFIG ================================ */
 const CONFIG = {
@@ -58,10 +72,35 @@ function initCursor() {
   });
 }
 
-/* ============================ NAV SMOOTH SCROLL ============================
-   Replaces the removed CSS `scroll-behavior:smooth` (which fought
-   ScrollTrigger's continuous scrub math on every wheel event). This only
-   fires on discrete nav-link clicks, so it doesn't conflict with pinning. */
+/* ============================== SMOOTH SCROLL ==============================
+   Lenis, same role it plays on the reference site: it intercepts wheel/touch
+   and applies the delta to the REAL scroll position via window.scrollTo(),
+   eased. Because the scroll position itself is still native, ScrollTrigger
+   needs no scrollerProxy and keeps working exactly as if Lenis weren't
+   there — Lenis only makes the motion between scroll positions buttery.
+   If the CDN fails, or on touch devices, we just fall through to plain
+   native scroll; nothing else in this file depends on Lenis existing. */
+let lenis = null;
+function initSmoothScroll() {
+  if (CONFIG.reduced || CONFIG.isMobile || !window.Lenis) return null;
+  lenis = new Lenis({
+    duration: 1.1,
+    easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+    orientation: 'vertical',
+    gestureOrientation: 'vertical',
+    smoothWheel: true,
+    wheelMultiplier: 1,
+    touchMultiplier: 1,
+    infinite: false,
+  });
+  // Keep ScrollTrigger's cached scroll position in sync with Lenis's eased value.
+  if (window.ScrollTrigger) lenis.on('scroll', ScrollTrigger.update);
+  const raf = (time) => { lenis.raf(time); requestAnimationFrame(raf); };
+  requestAnimationFrame(raf);
+  return lenis;
+}
+
+/* ============================ NAV SMOOTH SCROLL ============================ */
 function initNavSmoothScroll() {
   document.querySelectorAll('a[href^="#"]').forEach((a) => {
     a.addEventListener('click', (e) => {
@@ -69,7 +108,8 @@ function initNavSmoothScroll() {
       const target = id ? document.getElementById(id) : document.body;
       if (!target) return;
       e.preventDefault();
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (lenis) lenis.scrollTo(target, { offset: 0, duration: 1.4 });
+      else target.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   });
 }
@@ -91,9 +131,9 @@ function initMagneticElements() {
 }
 
 /* =========================== THREE.JS SPHERE (GLOBAL) ===========================
-   One wireframe sphere + particle shell, fixed behind everything.
-   Its Y rotation is bound to GLOBAL page scroll progress: at the absolute
-   bottom of the page it has completed exactly one full 360° turn. */
+   Unchanged in spirit: one wireframe sphere + particle shell, fixed behind
+   everything, Y rotation bound to global scroll progress. Still works
+   identically under Lenis since scroll position stays native. */
 async function initSphere() {
   if (!DOM.canvas || !window.WebGLRenderingContext) return;
   let THREE;
@@ -147,7 +187,6 @@ async function initSphere() {
   }));
   group.add(points);
 
-  // Scroll-driven rotation target: 0 → 2π across the whole page.
   let targetRot = 0, rot = 0;
   if (!CONFIG.reduced && window.gsap && window.ScrollTrigger) {
     ScrollTrigger.create({
@@ -158,7 +197,6 @@ async function initSphere() {
     });
   }
 
-  // Subtle mouse parallax on desktop.
   let mx = 0, my = 0, tx = 0, ty = 0;
   if (CONFIG.fine && !CONFIG.reduced) {
     addEventListener('mousemove', (e) => {
@@ -168,7 +206,6 @@ async function initSphere() {
   }
 
   const animate = () => {
-    // Critically-damped chase; converges exactly to the scroll target at rest.
     rot += (targetRot - rot) * 0.12;
     mx += (tx - mx) * 0.04;
     my += (ty - my) * 0.04;
@@ -184,7 +221,7 @@ async function initSphere() {
   };
 
   if (CONFIG.reduced) {
-    renderer.render(scene, camera); // single static frame
+    renderer.render(scene, camera);
   } else {
     animate();
   }
@@ -200,27 +237,17 @@ async function initSphere() {
 }
 
 /* ============================ SCROLL CHOREOGRAPHY ============================
-   Locked, one-step-per-scroll sequencing. Each pinned section (Hero, Work,
-   Toolkit, About) is a small paused GSAP timeline with labeled steps
-   ("step0", "step1", ...). Instead of tying the timeline's progress directly
-   to raw scroll distance (the old `scrub` approach — which is exactly what
-   let a fast/inertial scroll blast through several steps in one go and made
-   two sections visually overlap), each scroll "notch" is caught by GSAP's
-   Observer plugin, advances the timeline by exactly one labeled step, and is
-   IGNORED while that step's tween is still playing. The page cannot move to
-   the next animation until the current one finishes — and it holds in place
-   the whole time, on both wheel/trackpad and touch. Runs the same regardless
-   of the OS-level "reduce motion" flag (see initLoader/initCursor/initSphere
-   for the parts that still respect it). */
+   Scrub-stage pattern. `createScrubStage` wires one `.stage` to its
+   `.scroll-spacer` sibling with a single scrubbed timeline. `build(tl)`
+   populates that timeline; its total duration is just "1" (GSAP timelines
+   are unitless under scrub — only relative position matters), and scrub
+   maps [spacer top hits viewport top] → [spacer bottom hits viewport top]
+   onto timeline progress [0 → 1]. */
 function initScrollChoreography() {
   if (!window.gsap || !window.ScrollTrigger) return;
   gsap.registerPlugin(ScrollTrigger);
   ScrollTrigger.config({ ignoreMobileResize: true });
-  const hasObserver = !!window.Observer;
-  if (hasObserver) gsap.registerPlugin(Observer);
-  else console.warn('[dxles] Observer plugin unavailable — pinned sections will auto-play once instead of step-locking.');
 
-  // Nav state + progress rail (motion-independent, safe for everyone)
   ScrollTrigger.create({
     start: 'top -80', end: 99999,
     onUpdate: (self) => DOM.nav && DOM.nav.classList.toggle('is-scrolled', self.scroll() > 80),
@@ -231,8 +258,13 @@ function initScrollChoreography() {
       scrollTrigger: { trigger: document.body, start: 'top top', end: 'bottom bottom', scrub: true },
     });
   }
+  // Fixed stages can't drive a ScrollTrigger's start/end math (their
+  // getBoundingClientRect never changes with scroll), so the progress rail
+  // watches each stage's in-flow spacer instead; lab/contact are normal,
+  // non-fixed sections and are watched directly as before.
+  const railTriggers = { work: 'work-spacer', systems: 'systems-spacer', about: 'about-spacer', lab: 'lab', contact: 'contact' };
   ['work', 'systems', 'about', 'lab', 'contact'].forEach((id, i) => {
-    const el = document.getElementById(id);
+    const el = document.getElementById(railTriggers[id]);
     if (!el) return;
     ScrollTrigger.create({
       trigger: el, start: 'top center', end: 'bottom center',
@@ -240,127 +272,112 @@ function initScrollChoreography() {
     });
   });
 
-  /* ---------- Reusable locked-step pinned section ---------- */
-  function createLockedSection(id, build) {
-    const section = document.getElementById(id);
-    if (!section) return;
-    const tl = gsap.timeline({ paused: true });
-    const steps = build(tl); // populates tl with labels "step0".."stepN", returns N
-    if (!steps) return;
+  /* ---------- Reusable scrub-bound stage ---------- */
+  function createScrubStage(stageId, spacerId, build) {
+    const stage = document.getElementById(stageId);
+    const spacer = document.getElementById(spacerId);
+    if (!stage || !spacer) return;
 
-    let index = 0;
-    let animating = false;
-    let observer = null;
-
-    function goTo(nextIndex) {
-      animating = true;
-      tl.tweenTo(`step${nextIndex}`, {
-        duration: 0.85, ease: 'power2.inOut',
-        onComplete: () => { animating = false; },
-      });
-      index = nextIndex;
-    }
-    function next() {
-      if (animating) return;
-      if (index < steps) { goTo(index + 1); return; }
-      observer && observer.disable(); // last step done — let the next scroll pass through to the section below
-    }
-    function prev() {
-      if (animating) return;
-      if (index > 0) { goTo(index - 1); return; }
-      observer && observer.disable(); // first step's start — let scroll pass through to the section above
-    }
-    function arm() {
-      if (!hasObserver) return;
-      if (!observer) {
-        observer = Observer.create({
-          target: window, type: 'wheel,touch,pointer',
-          preventDefault: true, tolerance: 8,
-          onDown: next, onUp: prev,
-        });
-      } else {
-        observer.enable();
-      }
-    }
-
-    ScrollTrigger.create({
-      trigger: section, start: 'top top', end: '+=100%',
-      pin: true, anticipatePin: 1, invalidateOnRefresh: true,
-      onEnter: () => { index = 0; tl.progress(0); hasObserver ? arm() : tl.play(); },
-      onEnterBack: () => { index = steps; tl.progress(1); arm(); },
-      onLeave: () => observer && observer.disable(),
-      onLeaveBack: () => observer && observer.disable(),
+    const tl = gsap.timeline({
+      defaults: { ease: 'none' },
+      scrollTrigger: {
+        trigger: spacer,
+        start: 'top top',
+        end: 'bottom top',
+        scrub: 0.4,          // small smoothing so scrub doesn't feel stepped even on a jittery trackpad
+        invalidateOnRefresh: true,
+      },
     });
+    build(tl, stage);
   }
 
-  /* ---------- STEP 1 · HERO: "dxles" bleeds off-screen, scales into place ---------- */
-  createLockedSection('hero', (tl) => {
+  /* ---------- STAGE 1 · HERO: name scales in, chrome fades in, then the
+     whole stage cedes visibility to Work as its spacer runs out ---------- */
+  createScrubStage('hero', 'hero-spacer', (tl) => {
     const heroName = document.getElementById('hero-name');
-    if (!heroName) return 0;
+    if (!heroName) return;
     gsap.set(heroName, { scale: CONFIG.isMobile ? 3.6 : 6, yPercent: 10 });
     gsap.set('.hero-top, .hero-bottom', { opacity: 0, y: 18 });
-    tl.addLabel('step0')
-      .to(heroName, { scale: 1, yPercent: 0, duration: 1, ease: 'power2.inOut' })
-      .to('.hero-top, .hero-bottom', { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' }, '-=0.35')
-      .addLabel('step1');
-    return 1;
+    gsap.set('#hero', { autoAlpha: 1 });
+
+    tl.to(heroName, { scale: 1, yPercent: 0, duration: 0.35 }, 0)
+      .to('.hero-top, .hero-bottom', { opacity: 1, y: 0, duration: 0.15 }, 0.15)
+      // hold fully visible through the middle of its own spacer
+      .to('#hero', { autoAlpha: 1, duration: 0.35 }, 0.35)
+      // cede to Work in the last stretch of the hero spacer
+      .to('#hero', { autoAlpha: 0, duration: 0.2 }, 0.8);
   });
 
-  /* ---------- STEPS 2–4 · WORKS: one project slides in per scroll, previous blurs ---------- */
-  createLockedSection('work', (tl) => {
+  /* ---------- STAGE 2 · WORK: fades in as Hero cedes, projects reveal
+     one by one across the middle of the spacer, fades out into Toolkit ---------- */
+  createScrubStage('work', 'work-spacer', (tl) => {
     const projects = gsap.utils.toArray('.project');
-    if (!projects.length) return 0;
-    gsap.set(projects, { x: () => -innerWidth * 0.75, opacity: 0 });
+    if (!projects.length) return;
+    gsap.set('#work', { autoAlpha: 0 });
+    gsap.set(projects, { x: () => -innerWidth * 0.35, opacity: 0, filter: 'blur(0px)' });
     gsap.set('#work .section-head', { opacity: 0, y: 24 });
-    tl.addLabel('step0').to('#work .section-head', { opacity: 1, y: 0, duration: 0.4 });
+
+    tl.to('#work', { autoAlpha: 1, duration: 0.08 }, 0)
+      .to('#work .section-head', { opacity: 1, y: 0, duration: 0.06 }, 0.02);
+
+    const revealStart = 0.1, revealEnd = 0.85;
+    const span = (revealEnd - revealStart) / projects.length;
     projects.forEach((item, i) => {
-      tl.to(item, { x: 0, opacity: 1, duration: 0.8, ease: 'power3.out' }, '>');
+      const t0 = revealStart + i * span;
+      tl.to(item, { x: 0, opacity: 1, duration: span * 0.7 }, t0);
       if (i > 0) {
-        tl.to(projects[i - 1], { filter: 'blur(9px)', opacity: 0.28, duration: 0.6, ease: 'power2.out' }, '<');
+        tl.to(projects[i - 1], { filter: 'blur(6px)', opacity: 0.35, duration: span * 0.7 }, t0);
       }
-      if (i === projects.length - 1) {
-        // last step also settles everything back into full clarity together
-        tl.to(projects, { filter: 'blur(0px)', opacity: 1, duration: 0.6, ease: 'power2.out' }, '>0.1');
-      }
-      tl.addLabel(`step${i + 1}`);
     });
-    return projects.length;
+    // settle all back to full clarity right before handing off to Toolkit
+    tl.to(projects, { filter: 'blur(0px)', opacity: 1, duration: 0.08 }, revealEnd)
+      .to('#work', { autoAlpha: 0, duration: 0.12 }, 0.88);
   });
 
-  /* ---------- STEPS 5–8 · TOOLKIT: one column focuses per scroll ---------- */
-  createLockedSection('systems', (tl) => {
+  /* ---------- STAGE 3 · TOOLKIT: columns focus in sequence ---------- */
+  createScrubStage('systems', 'systems-spacer', (tl) => {
     const cols = gsap.utils.toArray('.systems-col');
-    if (!cols.length) return 0;
+    if (!cols.length) return;
+    gsap.set('#systems', { autoAlpha: 0 });
     gsap.set(cols, { filter: 'blur(14px)', opacity: 0.18 });
     gsap.set('#systems .section-head', { opacity: 0, y: 24 });
-    tl.addLabel('step0').to('#systems .section-head', { opacity: 1, y: 0, duration: 0.4 });
+
+    tl.to('#systems', { autoAlpha: 1, duration: 0.08 }, 0)
+      .to('#systems .section-head', { opacity: 1, y: 0, duration: 0.06 }, 0.02);
+
+    const revealStart = 0.1, revealEnd = 0.85;
+    const span = (revealEnd - revealStart) / cols.length;
     cols.forEach((col, i) => {
-      tl.to(col, { filter: 'blur(0px)', opacity: 1, duration: 0.7, ease: 'power2.out' }, '>');
-      if (i < cols.length - 1) {
-        tl.to(col, { filter: 'blur(6px)', opacity: 0.45, duration: 0.5, ease: 'power2.in' }, '>0.3');
-      } else {
-        tl.to(cols, { filter: 'blur(0px)', opacity: 1, duration: 0.6, ease: 'power2.out' }, '>0.1');
-      }
-      tl.addLabel(`step${i + 1}`);
+      const t0 = revealStart + i * span;
+      tl.to(col, { filter: 'blur(0px)', opacity: 1, duration: span * 0.8 }, t0);
     });
-    return cols.length;
+    tl.to(cols, { filter: 'blur(0px)', opacity: 1, duration: 0.08 }, revealEnd)
+      .to('#systems', { autoAlpha: 0, duration: 0.12 }, 0.88);
   });
 
-  /* ---------- STEPS 9–11 · ABOUT: one bio block reveals per scroll ---------- */
-  createLockedSection('about', (tl) => {
+  /* ---------- STAGE 4 · ABOUT: bio blocks reveal in sequence, then the
+     stage itself fades and normal (non-fixed) scroll takes over for
+     Lab/Contact below it ---------- */
+  createScrubStage('about', 'about-spacer', (tl) => {
     const blocks = gsap.utils.toArray('.about-block');
-    if (!blocks.length) return 0;
+    if (!blocks.length) return;
+    gsap.set('#about', { autoAlpha: 0 });
     gsap.set(blocks, { opacity: 0, y: 42 });
     gsap.set('#about .section-head', { opacity: 0, y: 24 });
-    tl.addLabel('step0').to('#about .section-head', { opacity: 1, y: 0, duration: 0.4 });
+
+    tl.to('#about', { autoAlpha: 1, duration: 0.08 }, 0)
+      .to('#about .section-head', { opacity: 1, y: 0, duration: 0.06 }, 0.02);
+
+    const revealStart = 0.1, revealEnd = 0.8;
+    const span = (revealEnd - revealStart) / blocks.length;
     blocks.forEach((b, i) => {
-      tl.to(b, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out' }, '>');
-      tl.addLabel(`step${i + 1}`);
+      const t0 = revealStart + i * span;
+      tl.to(b, { opacity: 1, y: 0, duration: span * 0.8 }, t0);
     });
-    return blocks.length;
+    tl.to('#about', { autoAlpha: 0, duration: 0.15 }, 0.85);
   });
 
-  /* ---------- STEP 12 · LAB: synchronized zoom-in, capped at scale 1 (not pinned, no lock needed) ---------- */
+  /* ---------- LAB & CONTACT: already scrub-based, non-fixed, unchanged ---------- */
   const labItems = gsap.utils.toArray('.lab-item');
   if (labItems.length) {
     gsap.fromTo(labItems,
@@ -371,7 +388,6 @@ function initScrollChoreography() {
       });
   }
 
-  /* ---------- STEP 13 · CONTACT: gentle settle-in ---------- */
   gsap.fromTo('.contact-title, .contact-email, .contact-links',
     { opacity: 0, y: 30 },
     {
@@ -387,8 +403,6 @@ function setActiveIndex(i) {
 }
 
 /* ==================================== INIT ==================================== */
-// CDN is primary (per project rules); if jsdelivr is unreachable we fall back
-// to the local vendor/ copies so animations never silently die.
 function loadScript(src) {
   return new Promise((resolve, reject) => {
     const s = document.createElement('script');
@@ -403,28 +417,20 @@ async function boot() {
   try {
     if (!window.gsap) await loadScript('vendor/gsap.min.js');
     if (!window.ScrollTrigger) await loadScript('vendor/ScrollTrigger.min.js');
-    if (!window.Observer) await loadScript('vendor/Observer.min.js');
+    if (!window.Lenis) await loadScript('vendor/lenis.min.js');
   } catch (err) {
-    console.warn('[dxles] GSAP unavailable — serving static, fully readable page.', err);
+    console.warn('[dxles] GSAP/Lenis unavailable — serving static, fully readable page.', err);
   }
-  // Even without GSAP the page stays readable: hidden/blurred states are only
-  // applied inside the animation functions, which guard on window.gsap.
   initLoader();
   initCursor();
+  initSmoothScroll();
   initNavSmoothScroll();
   initMagneticElements();
   initSphere();
 
-  // ScrollTrigger computes every pin's start/end (and the spacer height that
-  // reserves scroll distance for it) from the page's layout AT THE MOMENT
-  // pin:true is set up. If web fonts (Instrument Serif etc.) haven't swapped
-  // in yet, those measurements are taken against fallback-font heights and
-  // end up wrong — which is exactly what lets two consecutive pinned
-  // sections (e.g. Work → Toolkit) briefly both be "pinned" at once: the
-  // later one in the DOM paints on top, and the page keeps visibly
-  // scrolling instead of holding still during the pin. Wait for fonts AND
-  // full page load before creating any pin, so the very first measurement
-  // is already correct — no later correction/jump needed.
+  // Fonts + full page load must settle before the first ScrollTrigger
+  // measurement, or spacer heights get computed against fallback-font
+  // layout and drift once web fonts swap in.
   const fontsReady = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
   const windowLoaded = document.readyState === 'complete'
     ? Promise.resolve()
