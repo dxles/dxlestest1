@@ -29,7 +29,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=3" />
+  <link rel="stylesheet" href="style.css?v=4" />
 
   <script type="application/ld+json">
   {
@@ -73,8 +73,8 @@
   <header class="nav" id="nav">
     <a class="nav-logo magnetic" href="#top" aria-label="dxles.eu — başa dön" data-testid="nav-logo">dxles<span>.eu</span></a>
     <nav class="nav-links" aria-label="Ana navigasyon">
-      <a href="#work-track" class="magnetic" data-testid="nav-work">Work</a>
-      <a href="#about-track" class="magnetic" data-testid="nav-about">About</a>
+      <a href="#work-spacer" class="magnetic" data-testid="nav-work">Work</a>
+      <a href="#about-spacer" class="magnetic" data-testid="nav-about">About</a>
       <a href="#lab" class="magnetic" data-testid="nav-lab">Lab</a>
       <a href="#contact" class="magnetic" data-testid="nav-contact">Contact</a>
     </nav>
@@ -84,10 +84,23 @@
   <main id="main">
     <span id="top"></span>
 
-    <!-- STEP 1 · HERO -->
-    <div class="scroll-track" id="hero-track" aria-hidden="true"></div>
-    <section class="fixed-panel hero" id="hero" aria-label="Giriş">
-      <div class="panel-inner">
+    <!-- ===================================================================
+         SCRUB-STAGE PATTERN (no GSAP pin, no scroll-locking):
+         Each "stage" section below is CSS `position:fixed` and always sits
+         in the same spot in the viewport. Its own tall, invisible
+         `.scroll-spacer` sibling is what actually reserves scroll distance
+         in the (fully native / Lenis-smoothed) document flow. A single
+         scrub-tied GSAP timeline animates the fixed stage's contents
+         between 0 and 1 as the user scrolls through that spacer's height.
+         Because nothing is pinned, GSAP never injects a pin-spacer or
+         re-measures layout mid-scroll, so two stages can never end up
+         pinned at once and scroll never "holds" or jumps.
+    =================================================================== -->
+
+    <!-- STAGE 1 · HERO -->
+    <div class="scroll-spacer spacer-hero" id="hero-spacer" aria-hidden="true"></div>
+    <section class="stage hero" id="hero" aria-label="Giriş">
+      <div class="stage-inner">
         <div class="hero-top">
           <span>NOSECONDUS</span>
           <span>DEVELOPER / SECURITY / OSINT</span>
@@ -108,10 +121,10 @@
       </div>
     </section>
 
-    <!-- STEPS 2–4 · WORKS (fixed panel, slide + blur chain driven by scroll-track) -->
-    <div class="scroll-track" id="work-track" aria-hidden="true"></div>
-    <section class="fixed-panel section" id="work" aria-labelledby="work-heading">
-      <div class="panel-inner">
+    <!-- STAGE 2 · WORK -->
+    <div class="scroll-spacer spacer-work" id="work-spacer" aria-hidden="true"></div>
+    <section class="stage" id="work" aria-labelledby="work-heading">
+      <div class="stage-inner">
       <div class="section-head">
         <span class="section-num">02</span>
         <h2 id="work-heading">Selected work</h2>
@@ -162,10 +175,10 @@
       </div>
     </section>
 
-    <!-- STEPS 5–8 · TOOLKIT (fixed panel, focus rotation driven by scroll-track) -->
-    <div class="scroll-track" id="systems-track" aria-hidden="true"></div>
-    <section class="fixed-panel section" id="systems" aria-labelledby="systems-heading">
-      <div class="panel-inner">
+    <!-- STAGE 3 · TOOLKIT -->
+    <div class="scroll-spacer spacer-systems" id="systems-spacer" aria-hidden="true"></div>
+    <section class="stage" id="systems" aria-labelledby="systems-heading">
+      <div class="stage-inner">
       <div class="section-head">
         <span class="section-num">03</span>
         <h2 id="systems-heading">Toolkit</h2>
@@ -188,10 +201,10 @@
       </div>
     </section>
 
-    <!-- STEPS 9–11 · ABOUT (fixed panel, sequential bio reveal driven by scroll-track) -->
-    <div class="scroll-track" id="about-track" aria-hidden="true"></div>
-    <section class="fixed-panel section" id="about" aria-labelledby="about-heading">
-      <div class="panel-inner">
+    <!-- STAGE 4 · ABOUT -->
+    <div class="scroll-spacer spacer-about" id="about-spacer" aria-hidden="true"></div>
+    <section class="stage" id="about" aria-labelledby="about-heading">
+      <div class="stage-inner">
       <div class="section-head">
         <span class="section-num">04</span>
         <h2 id="about-heading">About</h2>
@@ -205,7 +218,7 @@
       </div>
     </section>
 
-    <!-- STEP 12 · LAB (synchronized zoom-in) -->
+    <!-- STEP 12 · LAB (already scrub-based, unpinned — unchanged) -->
     <section class="section" id="lab" aria-labelledby="lab-heading">
       <div class="section-head">
         <span class="section-num">05</span>
@@ -231,7 +244,7 @@
       </div>
     </section>
 
-    <!-- STEP 13 · CONTACT -->
+    <!-- STEP 13 · CONTACT (already scrub-based, unpinned — unchanged) -->
     <section class="section contact" id="contact" aria-labelledby="contact-heading">
       <div class="section-head">
         <span class="section-num">06</span>
@@ -256,8 +269,14 @@
     <span>PYTHON / SECURITY / OSINT</span>
   </footer>
 
+  <!-- Lenis: same technique the reference site uses — it calls the real
+       window.scrollTo() under an eased delta, so ScrollTrigger keeps
+       listening to native scroll with zero extra config (no scrollerProxy
+       needed). Optional: comment out the two lines in app.js's boot() that
+       start Lenis and everything still works on plain native scroll. -->
+  <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.18/dist/lenis.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/ScrollTrigger.min.js"></script>
-  <script src="app.js?v=3"></script>
+  <script src="app.js?v=4"></script>
 </body>
 </html>
