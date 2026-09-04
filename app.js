@@ -66,7 +66,7 @@ function initCursor() {
     requestAnimationFrame(loop);
   })();
 
-  document.querySelectorAll('a, button, .project').forEach((el) => {
+  document.querySelectorAll('a, button, .project, .lab-item').forEach((el) => {
     el.addEventListener('mouseenter', () => DOM.cursorRing.classList.add('is-hover'));
     el.addEventListener('mouseleave', () => DOM.cursorRing.classList.remove('is-hover'));
   });
@@ -377,22 +377,56 @@ function initScrollChoreography() {
     tl.to('#about', { autoAlpha: 0, duration: 0.15 }, 0.85);
   });
 
-  /* ---------- LAB & CONTACT: already scrub-based, non-fixed, unchanged ---------- */
-  const labItems = gsap.utils.toArray('.lab-item');
-  if (labItems.length) {
-    gsap.fromTo(labItems,
-      { scale: 0.84, opacity: 0.25 },
-      {
-        scale: 1, opacity: 1, ease: 'none',
-        scrollTrigger: { trigger: '.lab-list', start: 'top 88%', end: 'top 34%', scrub: true },
-      });
-  }
+  /* ---------- LAB: intro line draws in, then each experiment slides in
+     from alternating sides with a soft rotation + blur settle, individually
+     scrubbed so the scroll itself visibly "assembles" the list ---------- */
+  gsap.set('.lab-line', { scaleX: 0 });
+  gsap.to('.lab-line', {
+    scaleX: 1, ease: 'none',
+    scrollTrigger: { trigger: '.lab-line', start: 'top 92%', end: 'top 55%', scrub: 0.5 },
+  });
 
-  gsap.fromTo('.contact-title, .contact-email, .contact-links',
+  const labItems = gsap.utils.toArray('.lab-item');
+  labItems.forEach((item, i) => {
+    const fromLeft = i % 2 === 0;
+    gsap.fromTo(item,
+      { x: fromLeft ? -70 : 70, rotate: fromLeft ? -1.5 : 1.5, opacity: 0.15, filter: 'blur(8px)' },
+      {
+        x: 0, rotate: 0, opacity: 1, filter: 'blur(0px)', ease: 'none',
+        scrollTrigger: { trigger: item, start: 'top 92%', end: 'top 55%', scrub: 0.5 },
+      });
+  });
+
+  /* ---------- CONTACT: a soft glow blooms in behind the copy, a giant
+     faint numeral drifts upward as parallax, and the title/email/links
+     rise with a slight rotation settle instead of a flat fade ---------- */
+  gsap.to('.contact-glow', {
+    opacity: 1, scale: 1, ease: 'none',
+    scrollTrigger: { trigger: '#contact', start: 'top bottom', end: 'top 25%', scrub: 0.6 },
+  });
+  gsap.fromTo('.contact-num',
+    { opacity: 0, y: 60 },
+    {
+      opacity: 1, y: -40, ease: 'none',
+      scrollTrigger: { trigger: '#contact', start: 'top bottom', end: 'bottom top', scrub: 0.6 },
+    });
+  gsap.fromTo('.contact-title',
+    { opacity: 0, y: 50, rotate: 1.2 },
+    {
+      opacity: 1, y: 0, rotate: 0, duration: 1.1, ease: 'power3.out',
+      scrollTrigger: { trigger: '#contact', start: 'top 78%', toggleActions: 'play none none reverse' },
+    });
+  gsap.fromTo('.contact-email',
     { opacity: 0, y: 30 },
     {
-      opacity: 1, y: 0, duration: 0.9, stagger: 0.12, ease: 'power3.out',
+      opacity: 1, y: 0, duration: 0.9, delay: 0.15, ease: 'power3.out',
       scrollTrigger: { trigger: '#contact', start: 'top 78%', toggleActions: 'play none none reverse' },
+    });
+  gsap.fromTo('.contact-links a',
+    { opacity: 0, y: 26 },
+    {
+      opacity: 1, y: 0, duration: 0.7, stagger: 0.07, ease: 'power3.out',
+      scrollTrigger: { trigger: '.contact-links', start: 'top 92%', toggleActions: 'play none none reverse' },
     });
 
   requestAnimationFrame(() => ScrollTrigger.refresh());
