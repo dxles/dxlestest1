@@ -107,9 +107,10 @@ a{color:inherit;text-decoration:none}
 @media(max-width:800px){.nav-links,.nav-meta{display:none}}
 
 /* ================================ HERO ================================= */
-.hero{
-  min-height:100svh;max-width:var(--max);margin:auto;padding:0 var(--pad);
-  position:relative;z-index:1;display:flex;flex-direction:column;justify-content:space-between;
+/* `.stage` (below) owns the fixed outer box now; hero just needs its own
+   inner content flexed as a column with space-between, same as before. */
+#hero .stage-inner{
+  height:100%;display:flex;flex-direction:column;justify-content:space-between;
   padding-top:calc(var(--nav-h) + 30px);padding-bottom:40px;
 }
 .hero-top{display:flex;justify-content:space-between;gap:12px;font:11px var(--font-mono);letter-spacing:.08em;color:var(--muted);text-transform:uppercase;padding-top:20px}
@@ -126,8 +127,39 @@ a{color:inherit;text-decoration:none}
 
 /* ============================== SECTION GENERIC ========================= */
 .section{max-width:var(--max);margin:auto;padding:150px var(--pad);position:relative;z-index:1}
-.pin-section{min-height:100svh;display:flex;flex-direction:column;justify-content:center;padding-top:100px;padding-bottom:100px}
 .section-head{display:grid;grid-template-columns:44px auto 1fr;align-items:center;gap:16px;margin-bottom:70px;border-top:1px solid var(--line);padding-top:20px}
+
+/* ===================== SCRUB-STAGE (fixed layer + spacer) ===============
+   `.stage` replaces the old GSAP-pinned `.fixed-panel`: it's fixed in CSS
+   from the start, so no pin-spacer is ever injected/measured by GSAP.
+   `.scroll-spacer` is its invisible sibling that actually reserves scroll
+   distance; app.js scrubs a timeline against that spacer's ScrollTrigger
+   and drives this stage's opacity/visibility via GSAP's autoAlpha (which
+   also flips visibility, so an inactive stage never eats clicks/hover). */
+.stage{
+  position:fixed;inset:0;top:0;left:0;width:100%;height:100svh;
+  z-index:1;visibility:hidden;opacity:0;pointer-events:auto;
+}
+.stage.hero{visibility:visible;opacity:1} /* first stage is visible pre-JS / no-JS */
+.stage-inner{
+  width:100%;height:100%;max-width:var(--max);margin:auto;padding:0 var(--pad);
+  max-height:100svh;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+}
+#work .stage-inner,#systems .stage-inner,#about .stage-inner{
+  flex-direction:column;align-items:stretch;justify-content:center;
+}
+.scroll-spacer{width:100%;pointer-events:none}
+.spacer-hero{height:130vh}
+.spacer-work{height:280vh}
+.spacer-systems{height:220vh}
+.spacer-about{height:220vh}
+@media(max-width:800px){
+  .spacer-hero{height:110vh}
+  .spacer-work{height:340vh}
+  .spacer-systems{height:260vh}
+  .spacer-about{height:240vh}
+}
 .section-head h2{font:400 15px var(--font-mono);text-transform:uppercase;letter-spacing:.08em}
 .section-rule{height:1px;background:var(--line)}
 
@@ -209,9 +241,8 @@ a{color:inherit;text-decoration:none}
 }
 @media(max-width:800px){
   .section{padding:100px var(--pad)}
-  .pin-section{padding-top:80px;padding-bottom:80px}
   .section-head{margin-bottom:46px}
-  .hero{padding-top:calc(var(--nav-h) + 10px)}
+  #hero .stage-inner{padding-top:calc(var(--nav-h) + 10px)}
   .hero-name{font-size:clamp(70px,24vw,140px)}
   .project-row{grid-template-columns:34px 1fr auto;gap:14px}
   .project-desc,.project-tags{margin-left:48px}
