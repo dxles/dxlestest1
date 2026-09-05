@@ -1,4 +1,5 @@
 /* dxles.eu — vanilla JS, no build step.*/
+/* dxles.eu — vanilla JS, no build step.*/
 const CONFIG = {
   isMobile: matchMedia('(max-width: 800px)').matches,
   reduced: matchMedia('(prefers-reduced-motion: reduce)').matches,
@@ -299,7 +300,7 @@ function initSmoothScroll() {
   smoother = ScrollSmoother.create({
     wrapper: '#smooth-wrapper',
     content: '#smooth-content',
-    smooth: CONFIG.isMobile ? 1.1 : 1.8,  // how much the visual scroll lags/eases behind input — the main "weight" knob
+    smooth: CONFIG.isMobile ? 1.3 : 2.2,  // how much the visual scroll lags/eases behind input — the main "weight" knob
     smoothTouch: CONFIG.isMobile ? 0.35 : 0.1, // light on touch so it eases without feeling laggy
     effects: false,
     normalizeScroll: false, // we handle wheel input ourselves now, see initSnapScroll
@@ -375,13 +376,29 @@ function initSnapScroll() {
       smoother.scrollTo(target, true, 'top top');
       // ScrollSmoother animates internally but doesn't expose a promise —
       // approximate its own configured duration to know when to unlock.
-      animTimer = setTimeout(unlock, (CONFIG.isMobile ? 1.1 : 1.8) * 1000 + 150);
+      animTimer = setTimeout(unlock, (CONFIG.isMobile ? 1.3 : 2.2) * 1000 + 150);
     } else {
-      const startY = scrollY, dist = target - startY, dur = 850, t0 = performance.now();
-      const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+      // No-ScrollSmoother fallback — same "settle into the shot" curve as
+      // cinematicSilk (0.45,0.05,0.55,0.95) instead of a generic ease-out,
+      // so it still reads as one deliberate jump rather than a raw scroll.
+      const cinematicSilkBezier = (t) => {
+        // cubic-bezier(0.45,0.05,0.55,0.95) sampled via Newton's method on x(t)
+        const x1 = 0.45, x2 = 0.55, y1 = 0.05, y2 = 0.95;
+        const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx;
+        const cy = 3 * y1, by = 3 * (y2 - y1) - cy, ay = 1 - cy - by;
+        let u = t;
+        for (let i = 0; i < 6; i++) {
+          const x = ((ax * u + bx) * u + cx) * u - t;
+          const dx = (3 * ax * u + 2 * bx) * u + cx;
+          if (Math.abs(dx) < 1e-6) break;
+          u -= x / dx;
+        }
+        return ((ay * u + by) * u + cy) * u;
+      };
+      const startY = scrollY, dist = target - startY, dur = 950, t0 = performance.now();
       (function step(now) {
         const t = clamp((now - t0) / dur, 0, 1);
-        scrollTo(0, startY + dist * easeOutCubic(t));
+        scrollTo(0, startY + dist * cinematicSilkBezier(t));
         if (t < 1) requestAnimationFrame(step); else unlock();
       })(t0);
     }
@@ -527,6 +544,30 @@ function initScrollChoreography() {
 
     tl.to(projects, { filter: 'blur(0px)', opacity: 1, duration: 0.08 }, revealEnd)
       .to('#work', { autoAlpha: 0, duration: 0.12, ease: 'cinematicSilk' }, 0.88);
+
+    // Auto open/close each project's media (video/gif/screenshot) as scroll
+    // focus moves between them — same reveal beat as the blur/opacity above,
+    // driven off the same scrub progress so it can never drift out of sync.
+    let activeProjectIndex = -1;
+    function setActiveProject(index) {
+      if (index === activeProjectIndex) return;
+      activeProjectIndex = index;
+      projects.forEach((proj, i) => {
+        const isActive = i === index;
+        proj.classList.toggle('is-active', isActive);
+        const video = proj.querySelector('video');
+        if (!video) return;
+        if (isActive) { video.play && video.play().catch(() => {}); }
+        else { video.pause && video.pause(); try { video.currentTime = 0; } catch (err) {} }
+      });
+    }
+    tl.eventCallback('onUpdate', () => {
+      const p = tl.progress();
+      const idx = (p < revealStart || p >= revealEnd)
+        ? -1
+        : Math.min(projects.length - 1, Math.floor((p - revealStart) / span));
+      setActiveProject(idx);
+    });
   });
 
   createScrubStage('systems', 'systems-spacer', (tl) => {
