@@ -176,6 +176,30 @@ a{color:inherit;text-decoration:none}
 .project-tags{display:flex;flex-wrap:wrap;gap:7px;margin:16px 0 0}
 .project-tags span{border:1px solid var(--line);background:var(--surface);padding:6px 9px;font:9px var(--font-mono);color:var(--muted);text-transform:uppercase}
 
+/* Active-project media — the panel opens under whichever project is
+   currently "in focus" during the work-stage scrub (see app.js,
+   setActiveProject inside the work createScrubStage) and closes again
+   the moment focus moves to the next one. Height-based reveal (not
+   display:none) so the close transition can play instead of popping. */
+.project{transition:border-color .4s ease}
+.project.is-active{border-color:var(--accent)}
+.project-media{
+  max-height:0;opacity:0;margin-top:0;overflow:hidden;
+  border:1px solid var(--line);background:var(--surface);
+  transition:max-height .6s cubic-bezier(.45,.05,.55,.95),
+             opacity .45s ease,
+             margin-top .6s cubic-bezier(.45,.05,.55,.95);
+}
+.project.is-active .project-media{max-height:340px;opacity:1;margin-top:22px}
+.project-media img,.project-media video{display:block;width:100%;height:340px;object-fit:cover;object-position:top}
+@media(max-width:800px){
+  .project.is-active .project-media{max-height:200px}
+  .project-media img,.project-media video{height:200px}
+}
+@media(prefers-reduced-motion:reduce){
+  .project-media{transition:none}
+}
+
 /* Native scroll-linked reveal for the tag pills — ported as-is from the
    Codrops "shape" slide-in (animation-timeline:view()), just retargeted
    to .project-tags span. Runs purely in CSS, independent of GSAP/ScrollTrigger,
