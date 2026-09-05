@@ -3,19 +3,26 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>dxles — Python Developer &amp; OSINT Researcher | dxles.eu</title>
+  <title>dxles — Python Developer &amp; OSINT Researcher</title>
   <meta name="description" content="dxles (nosecondus) — Bavyera, Almanya merkezli Python geliştiricisi. Security research, OSINT, automation ve backend systems üzerine çalışıyor. Building since 2018." />
   <meta name="author" content="dxles" />
-  <meta name="theme-color" content="#050505" />
+  <meta name="theme-color" content="#111215" />
   <link rel="canonical" href="https://dxles.eu/" />
+
+  <script>if ('scrollRestoration' in history) { history.scrollRestoration = 'manual'; }</script>
 
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://dxles.eu/" />
   <meta property="og:title" content="dxles — Python Developer &amp; OSINT Researcher" />
   <meta property="og:description" content="Building since 2018. Python first. Systems second. Everything else follows." />
-  <meta name="twitter:card" content="summary" />
+  <meta property="og:image" content="https://dxles.eu/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="dxles — Full-Stack Developer & Security Researcher" />
+  <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="dxles — Python Developer &amp; OSINT Researcher" />
   <meta name="twitter:description" content="Building since 2018. Python first. Systems second. Everything else follows." />
+  <meta name="twitter:image" content="https://dxles.eu/og-image.png" />
 
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-E3HJQWMVDP"></script>
   <script>
@@ -29,7 +36,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=4" />
+  <link rel="stylesheet" href="style.css?v=12" />
 
   <script type="application/ld+json">
   {
@@ -41,7 +48,7 @@
     "jobTitle": "Python Developer",
     "address": { "@type": "PostalAddress", "addressRegion": "Bavaria", "addressCountry": "DE" },
     "knowsAbout": ["Python", "Security Research", "OSINT", "Automation", "Reverse Engineering", "Backend Systems"],
-    "sameAs": ["https://github.com/35rl", "https://instagram.com/nosecondus", "https://www.linkedin.com/in/dxlesx/"]
+    "sameAs": ["https://github.com/35rl", "https://instagram.com/ncs.verified", "https://www.linkedin.com/in/35rl/"]
   }
   </script>
 </head>
@@ -57,49 +64,30 @@
     </div>
   </div>
 
-  <canvas id="webgl" aria-hidden="true"></canvas>
+  <canvas id="cinematic-gl" aria-hidden="true"></canvas>
   <div class="cursor-ring" aria-hidden="true"></div>
   <div class="cursor-dot" aria-hidden="true"></div>
+  <div class="grain" aria-hidden="true"></div>
 
   <div class="progress-rail" aria-hidden="true">
     <span class="progress-fill"></span>
-    <span class="progress-index" data-index="0" style="top:0%">02</span>
-    <span class="progress-index" data-index="1" style="top:25%">03</span>
-    <span class="progress-index" data-index="2" style="top:50%">04</span>
-    <span class="progress-index" data-index="3" style="top:75%">05</span>
-    <span class="progress-index" data-index="4" style="top:100%">06</span>
+    <span class="progress-index" data-index="0" style="top:0%"></span>
+    <span class="progress-index" data-index="1" style="top:25%"></span>
+    <span class="progress-index" data-index="2" style="top:50%"></span>
+    <span class="progress-index" data-index="3" style="top:75%"></span>
+    <span class="progress-index" data-index="4" style="top:100%"></span>
   </div>
 
   <header class="nav" id="nav">
     <a class="nav-logo magnetic" href="#top" aria-label="dxles.eu — başa dön" data-testid="nav-logo">dxles<span>.eu</span></a>
-    <nav class="nav-links" aria-label="Ana navigasyon">
-      <a href="#work-spacer" class="magnetic" data-testid="nav-work">Work</a>
-      <a href="#about-spacer" class="magnetic" data-testid="nav-about">About</a>
-      <a href="#lab" class="magnetic" data-testid="nav-lab">Lab</a>
-      <a href="#contact" class="magnetic" data-testid="nav-contact">Contact</a>
-    </nav>
-    <span class="nav-meta mono">INDEX / 2026</span>
+    <span class="nav-meta mono">BAVARIA / DE</span>
   </header>
 
   <main id="main">
     <span id="top"></span>
 
-    <!-- ===================================================================
-         SCRUB-STAGE PATTERN (no GSAP pin, no scroll-locking):
-         Each "stage" section below is CSS `position:fixed` and always sits
-         in the same spot in the viewport. Its own tall, invisible
-         `.scroll-spacer` sibling is what actually reserves scroll distance
-         in the (fully native / Lenis-smoothed) document flow. A single
-         scrub-tied GSAP timeline animates the fixed stage's contents
-         between 0 and 1 as the user scrolls through that spacer's height.
-         Because nothing is pinned, GSAP never injects a pin-spacer or
-         re-measures layout mid-scroll, so two stages can never end up
-         pinned at once and scroll never "holds" or jumps.
-    =================================================================== -->
-
-    <!-- STAGE 1 · HERO -->
-    <div class="scroll-spacer spacer-hero" id="hero-spacer" aria-hidden="true"></div>
     <section class="stage hero" id="hero" aria-label="Giriş">
+      <div class="aurora" aria-hidden="true"><span></span><span></span></div>
       <div class="stage-inner">
         <div class="hero-top">
           <span>NOSECONDUS</span>
@@ -121,12 +109,9 @@
       </div>
     </section>
 
-    <!-- STAGE 2 · WORK -->
-    <div class="scroll-spacer spacer-work" id="work-spacer" aria-hidden="true"></div>
     <section class="stage" id="work" aria-labelledby="work-heading">
       <div class="stage-inner">
       <div class="section-head">
-        <span class="section-num">02</span>
         <h2 id="work-heading">Selected work</h2>
         <span class="section-rule" aria-hidden="true"></span>
       </div>
@@ -134,7 +119,6 @@
       <div class="project-list">
         <article class="project" data-testid="project-1">
           <div class="project-row">
-            <span class="project-n mono">01</span>
             <span class="project-name">Nowtify<em>Music control</em></span>
             <span class="project-arrow" aria-hidden="true">→</span>
           </div>
@@ -144,7 +128,6 @@
 
         <article class="project" data-testid="project-2">
           <div class="project-row">
-            <span class="project-n mono">02</span>
             <span class="project-name">Username Checker<em>OSINT / automation</em></span>
             <span class="project-arrow" aria-hidden="true">→</span>
           </div>
@@ -154,7 +137,6 @@
 
         <article class="project" data-testid="project-3">
           <div class="project-row">
-            <span class="project-n mono">03</span>
             <span class="project-name">OSINT Tool Map<em>Research tooling</em></span>
             <span class="project-arrow" aria-hidden="true">→</span>
           </div>
@@ -164,7 +146,6 @@
 
         <article class="project" data-testid="project-4">
           <div class="project-row">
-            <span class="project-n mono">04</span>
             <span class="project-name">Security Automation<em>Automation / analysis</em></span>
             <span class="project-arrow" aria-hidden="true">→</span>
           </div>
@@ -175,12 +156,9 @@
       </div>
     </section>
 
-    <!-- STAGE 3 · TOOLKIT -->
-    <div class="scroll-spacer spacer-systems" id="systems-spacer" aria-hidden="true"></div>
     <section class="stage" id="systems" aria-labelledby="systems-heading">
       <div class="stage-inner">
       <div class="section-head">
-        <span class="section-num">03</span>
         <h2 id="systems-heading">Toolkit</h2>
         <span class="section-rule" aria-hidden="true"></span>
       </div>
@@ -201,12 +179,9 @@
       </div>
     </section>
 
-    <!-- STAGE 4 · ABOUT -->
-    <div class="scroll-spacer spacer-about" id="about-spacer" aria-hidden="true"></div>
     <section class="stage" id="about" aria-labelledby="about-heading">
       <div class="stage-inner">
       <div class="section-head">
-        <span class="section-num">04</span>
         <h2 id="about-heading">About</h2>
         <span class="section-rule" aria-hidden="true"></span>
       </div>
@@ -218,69 +193,108 @@
       </div>
     </section>
 
-    <!-- STEP 12 · LAB (already scrub-based, unpinned — unchanged) -->
-    <section class="section" id="lab" aria-labelledby="lab-heading">
-      <div class="section-head">
-        <span class="section-num">05</span>
-        <h2 id="lab-heading">Lab</h2>
-        <span class="section-rule" aria-hidden="true"></span>
-      </div>
-      <p class="lab-intro">Yayınlamadığım, yarım kalmış ya da sadece merak edip denediğim küçük deneyler. Her biri ayrı bir soruyu takip ediyor.</p>
-      <span class="lab-line" aria-hidden="true"></span>
-      <div class="lab-list">
-        <div class="lab-item" data-testid="lab-item-1">
-          <span class="lab-item-num mono">EXPERIMENT 001</span>
-          <span class="lab-item-name">Packet Pattern Visualizer</span>
-          <span class="lab-item-meta">python · network analysis</span>
-        </div>
-        <div class="lab-item" data-testid="lab-item-2">
-          <span class="lab-item-num mono">EXPERIMENT 002</span>
-          <span class="lab-item-name">PyInstaller Unpacker</span>
-          <span class="lab-item-meta">python · reverse engineering</span>
-        </div>
-        <div class="lab-item" data-testid="lab-item-3">
-          <span class="lab-item-num mono">EXPERIMENT 003</span>
-          <span class="lab-item-name">OSINT Node Grapher</span>
-          <span class="lab-item-meta">python · visualization</span>
-        </div>
-      </div>
-    </section>
+    <!-- Everything below is the ScrollSmoother-managed scroll track. The four
+         fixed .stage "shots" above stay outside it on purpose — ScrollSmoother
+         moves #smooth-content with a transform, and a transform on an ancestor
+         breaks position:fixed children, so the pinned stages have to live
+         outside the wrapper while only the scroll distance (spacers) lives
+         inside it. -->
+    <div id="smooth-wrapper">
+      <div id="smooth-content">
+        <div class="scroll-spacer spacer-hero" id="hero-spacer" aria-hidden="true"></div>
+        <div class="scroll-spacer spacer-work" id="work-spacer" aria-hidden="true"></div>
+        <div class="scroll-spacer spacer-systems" id="systems-spacer" aria-hidden="true"></div>
+        <div class="scroll-spacer spacer-about" id="about-spacer" aria-hidden="true"></div>
 
-    <!-- STEP 13 · CONTACT (already scrub-based, unpinned — unchanged) -->
-    <section class="section contact" id="contact" aria-labelledby="contact-heading">
-      <div class="contact-glow" aria-hidden="true"></div>
-      <span class="contact-num" aria-hidden="true">06</span>
-      <div class="section-head">
-        <span class="section-num">06</span>
-        <h2 id="contact-heading">Contact</h2>
-        <span class="section-rule" aria-hidden="true"></span>
+        <section class="section" id="lab" aria-labelledby="lab-heading">
+        <div class="section-head">
+          <h2 id="lab-heading">Lab</h2>
+          <span class="section-rule" aria-hidden="true"></span>
+        </div>
+        <p class="lab-intro">Yayınlamadığım, yarım kalmış ya da sadece merak edip denediğim küçük deneyler. Her biri ayrı bir soruyu takip ediyor.</p>
+        <span class="lab-line" aria-hidden="true"></span>
+        <div class="lab-list">
+          <div class="lab-item" data-testid="lab-item-1">
+            <span class="lab-item-name">Packet Pattern Visualizer</span>
+            <span class="lab-item-meta">python · network analysis</span>
+          </div>
+          <div class="lab-item" data-testid="lab-item-2">
+            <span class="lab-item-name">PyInstaller Unpacker</span>
+            <span class="lab-item-meta">python · reverse engineering</span>
+          </div>
+          <div class="lab-item" data-testid="lab-item-3">
+            <span class="lab-item-name">OSINT Node Grapher</span>
+            <span class="lab-item-meta">python · visualization</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="section contact" id="contact" aria-labelledby="contact-heading">
+        <div class="aurora" aria-hidden="true"><span></span><span></span></div>
+        <div class="contact-glow" aria-hidden="true"></div>
+        <div class="section-head">
+          <h2 id="contact-heading">Contact</h2>
+          <span class="section-rule" aria-hidden="true"></span>
+        </div>
+        <p class="contact-title">Have something<br /><em>worth building?</em></p>
+        <div class="contact-primary">
+          <a class="contact-email magnetic" href="mailto:dxles.eu@gmail.com" data-testid="contact-email">dxles.eu@gmail.com ↗</a>
+          <a class="contact-cv magnetic" href="/cv.pdf" target="_blank" rel="noopener noreferrer" data-testid="contact-cv">CV indir ↓</a>
+        </div>
+        <div class="contact-links">
+          <a href="https://github.com/35rl" target="_blank" rel="noopener noreferrer" data-testid="link-github">GitHub</a>
+          <a href="https://instagram.com/ncs.verified" target="_blank" rel="noopener noreferrer" data-testid="link-instagram">Instagram</a>
+          <a href="https://tiktok.com/@ncs.verified" target="_blank" rel="noopener noreferrer" data-testid="link-tiktok">TikTok</a>
+          <a href="https://youtube.com/@dxles" target="_blank" rel="noopener noreferrer" data-testid="link-youtube">YouTube</a>
+          <a href="https://www.linkedin.com/in/35rl/" target="_blank" rel="noopener noreferrer" data-testid="link-linkedin">LinkedIn</a>
+        </div>
+      </section>
       </div>
-      <p class="contact-title">Have something<br /><em>worth building?</em></p>
-      <a class="contact-email magnetic" href="mailto:dxxlxdxxx@gmail.com" data-testid="contact-email">dxxlxdxxx@gmail.com ↗</a>
-      <div class="contact-links">
-        <a href="https://github.com/35rl" target="_blank" rel="noopener noreferrer" data-testid="link-github">GitHub</a>
-        <a href="https://instagram.com/nosecondus" target="_blank" rel="noopener noreferrer" data-testid="link-instagram">Instagram</a>
-        <a href="https://tiktok.com/@nosecondus" target="_blank" rel="noopener noreferrer" data-testid="link-tiktok">TikTok</a>
-        <a href="https://youtube.com/@dxles" target="_blank" rel="noopener noreferrer" data-testid="link-youtube">YouTube</a>
-        <a href="https://www.linkedin.com/in/dxlesx/" target="_blank" rel="noopener noreferrer" data-testid="link-linkedin">LinkedIn</a>
-      </div>
-    </section>
+    </div>
   </main>
 
   <footer class="site-footer">
     <span>© 2026 NOSECONDUS</span>
     <span>BAVARIA / DE</span>
     <span>PYTHON / SECURITY / OSINT</span>
+    <a href="/privacy.html" data-testid="link-privacy">Privacy</a>
   </footer>
 
-  <!-- Lenis: same technique the reference site uses — it calls the real
-       window.scrollTo() under an eased delta, so ScrollTrigger keeps
-       listening to native scroll with zero extra config (no scrollerProxy
-       needed). Optional: comment out the two lines in app.js's boot() that
-       start Lenis and everything still works on plain native scroll. -->
-  <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.18/dist/lenis.min.js"></script>
+  <div class="trap-links" aria-hidden="true">
+    <a href="/wp-admin/" tabindex="-1">wp-admin</a>
+    <a href="/administrator/" tabindex="-1">administrator</a>
+    <a href="/old-panel/" tabindex="-1">old-panel</a>
+  </div>
+
+  <div class="directory" id="directory" aria-hidden="true">
+    <div class="directory-grid">
+      <a class="directory-tile" href="#work-spacer" data-index="0" data-testid="dir-work"><span>Work</span></a>
+      <a class="directory-tile" href="#systems-spacer" data-index="1" data-testid="dir-systems"><span>Toolkit</span></a>
+      <a class="directory-tile" href="#about-spacer" data-index="2" data-testid="dir-about"><span>About</span></a>
+      <a class="directory-tile" href="#lab" data-index="3" data-testid="dir-lab"><span>Lab</span></a>
+      <a class="directory-tile" href="#contact" data-index="4" data-testid="dir-contact"><span>Contact</span></a>
+      <a class="directory-tile directory-tile-social" href="https://instagram.com/ncs.verified" target="_blank" rel="noopener noreferrer" data-testid="dir-instagram"><span>Instagram ↗</span></a>
+      <a class="directory-tile directory-tile-social" href="https://github.com/35rl" target="_blank" rel="noopener noreferrer" data-testid="dir-github"><span>GitHub ↗</span></a>
+      <a class="directory-tile directory-tile-social" href="https://www.linkedin.com/in/35rl/" target="_blank" rel="noopener noreferrer" data-testid="dir-linkedin"><span>LinkedIn ↗</span></a>
+    </div>
+  </div>
+
+  <nav class="dock" id="dock" aria-label="Site kontrolleri">
+    <button class="dock-btn" id="directory-toggle" type="button" aria-expanded="false" aria-controls="directory" data-testid="dock-directory">
+      <span class="dock-btn-label" data-label-open="Directory" data-label-close="Close">Directory</span>
+    </button>
+    <span class="dock-divider" aria-hidden="true"></span>
+    <button class="dock-btn" id="dock-sound" type="button" aria-pressed="true" aria-label="Ses efektlerini kapat" data-testid="dock-sound-toggle">
+      <span class="dock-btn-label">Sound</span>
+      <span class="dock-meter" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+    </button>
+  </nav>
+
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/ScrollTrigger.min.js"></script>
-  <script src="app.js?v=4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/ScrollSmoother.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/CustomEase.min.js"></script>
+  <script src="app.js?v=12"></script>
+  <script type="module" src="webgl-scene.js?v=1"></script>
 </body>
 </html>
