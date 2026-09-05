@@ -302,7 +302,7 @@ function initSmoothScroll() {
     smooth: CONFIG.isMobile ? 1.1 : 1.8,  // how much the visual scroll lags/eases behind input — the main "weight" knob
     smoothTouch: CONFIG.isMobile ? 0.35 : 0.1, // light on touch so it eases without feeling laggy
     effects: false,
-    normalizeScroll: !CONFIG.isMobile,
+    normalizeScroll: false, // we handle wheel input ourselves now, see initSnapScroll
   });
   return smoother;
 }
@@ -317,6 +317,111 @@ function initNavSmoothScroll() {
       if (smoother) smoother.scrollTo(target, true, 'top top');
       else target.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
+  });
+}
+
+/* ---------------------------------------------------------------------
+   Snap scroll — this is the actual fix for "still feels like I'm
+   scrolling it myself". Everything above (ScrollSmoother lag, custom
+   eases) still tracked the scrollbar 1:1, just with a lag. This instead
+   turns one wheel/trackpad/key nudge into a single animated jump to the
+   next "shot" — hero → work → systems → about — the way the cinematic
+   scroll sites this was ported from actually behave.
+
+   Scoped to the four pinned full-screen stages only: they're each
+   exactly one viewport, so "one scroll = one shot" reads as intentional.
+   Past the About stage, lab/contact are normal flowing content (a list
+   of items, then a contact block) — hijacking wheel input there would
+   make it impossible to scroll through them normally, so the snap
+   disengages at that boundary and ordinary (still eased) scrolling
+   takes over. Desktop-only (pointer:fine): forcing hard snaps onto
+   touch swipes tends to fight the OS's own momentum scrolling and feel
+   worse, not more cinematic — touch keeps the ScrollSmoother lag above.
+------------------------------------------------------------------------ */
+function cumulativeOffsetTop(el) {
+  let top = 0;
+  while (el) { top += el.offsetTop || 0; el = el.offsetParent; }
+  return top;
+}
+
+function initSnapScroll() {
+  if (CONFIG.reduced || !CONFIG.fine) return;
+
+  const stageSpacerIds = ['hero-spacer', 'work-spacer', 'systems-spacer', 'about-spacer'];
+  let stops = [];   // scroll-Y of the top of each stage spacer — the snap points
+  let exitPoint = 0; // top of #lab — where hard snapping hands off to free scroll
+
+  function measure() {
+    stops = stageSpacerIds
+      .map((id) => document.getElementById(id))
+      .filter(Boolean)
+      .map(cumulativeOffsetTop);
+    const lab = document.getElementById('lab');
+    exitPoint = lab ? cumulativeOffsetTop(lab) : (stops[stops.length - 1] || 0);
+  }
+  measure();
+  addEventListener('resize', debounce(measure, 200));
+
+  const currentScroll = () => (smoother ? smoother.scrollTop() : scrollY);
+
+  let isAnimating = false;
+  let animTimer = null;
+
+  function goTo(target) {
+    isAnimating = true;
+    clearTimeout(animTimer);
+    const unlock = () => { isAnimating = false; };
+    if (smoother) {
+      smoother.scrollTo(target, true, 'top top');
+      // ScrollSmoother animates internally but doesn't expose a promise —
+      // approximate its own configured duration to know when to unlock.
+      animTimer = setTimeout(unlock, (CONFIG.isMobile ? 1.1 : 1.8) * 1000 + 150);
+    } else {
+      const startY = scrollY, dist = target - startY, dur = 850, t0 = performance.now();
+      const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+      (function step(now) {
+        const t = clamp((now - t0) / dur, 0, 1);
+        scrollTo(0, startY + dist * easeOutCubic(t));
+        if (t < 1) requestAnimationFrame(step); else unlock();
+      })(t0);
+    }
+  }
+
+  function nextStop(dir) {
+    const points = [...stops, exitPoint];
+    const cur = currentScroll();
+    if (dir > 0) return points.find((p) => p > cur + 4) ?? null;
+    const below = points.filter((p) => p < cur - 4);
+    return below.length ? below[below.length - 1] : null;
+  }
+
+  function insideStageZone(dir, cur) {
+    if (cur < exitPoint - 4) return true;
+    return dir < 0 && cur <= exitPoint + 4; // allow snapping back up right at the boundary
+  }
+
+  addEventListener('wheel', (e) => {
+    if (e.ctrlKey || Math.abs(e.deltaY) < 4) return; // ctrlKey = pinch-zoom gesture, leave it alone
+    if (document.body.classList.contains('directory-open')) return;
+    const dir = e.deltaY > 0 ? 1 : -1;
+    const cur = currentScroll();
+    if (!insideStageZone(dir, cur)) return; // past About — let lab/contact scroll normally
+    e.preventDefault();
+    if (isAnimating) return;
+    const target = nextStop(dir);
+    if (target != null) goTo(target);
+  }, { passive: false });
+
+  addEventListener('keydown', (e) => {
+    const dir = (e.key === 'PageDown' || e.key === 'ArrowDown' || e.key === ' ') ? 1
+      : (e.key === 'PageUp' || e.key === 'ArrowUp') ? -1 : 0;
+    if (!dir) return;
+    if (document.body.classList.contains('directory-open')) return;
+    if (!insideStageZone(dir, currentScroll())) return;
+    e.preventDefault();
+    if (isAnimating) return;
+    const target = nextStop(dir);
+    if (target != null) goTo(target);
   });
 }
 
@@ -542,6 +647,7 @@ async function boot() {
   initCursor();
   initSmoothScroll();
   initNavSmoothScroll();
+  initSnapScroll();
   initMagneticElements();
   initSoundUI();
   initDirectory();
